@@ -38,6 +38,13 @@ describe BAMFCSV do
       BAMFCSV.read("spec/fixtures/terminated-with-cr.csv").should == [["a"],["b"]]
     end
 
+    it "works with header_converters" do
+      table = BAMFCSV.read("spec/fixtures/headers.csv", :headers => true, :header_converters => :strip)
+      table.first["c"].should == '3'
+      table.first["d"].should == '4'
+      table.first["e"].should == '5'
+    end
+
     describe "Alternate separators" do
       it "raises BAMFCSV::InvalidSeparator if :separator is not exactly one character long" do
         expect { BAMFCSV.read("spec/fixtures/pipe-delimited.csv", :separator => '') }.should raise_error(BAMFCSV::InvalidSeparator)

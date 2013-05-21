@@ -19,7 +19,7 @@ module BAMFCSV
     raise InvalidSeparator, "Separator cannot be '\"'" if separator == '"'
     matrix = __parse_string(copy, separator)
     if opts[:headers]
-      Table.new(matrix)
+      Table.new(matrix, opts)
     else
       matrix
     end

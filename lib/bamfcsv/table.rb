@@ -1,8 +1,21 @@
 module BAMFCSV
   class Table
     include Enumerable
-    def initialize(matrix)
+    def initialize(matrix, opts = {})
+      @opts = opts
       @headers = matrix.shift
+      
+      if @opts.has_key? :header_converters
+        if !@opts[:header_converters].is_a? Array
+          @opts[:header_converters] = [@opts[:header_converters]]
+        end
+        @opts[:header_converters].each do |converter|
+          if converter.is_a? Symbol
+            @headers.collect! { |v| v.send(converter) }
+          end
+        end
+      end
+      
       @matrix = matrix
       @header_map = {}
       @headers.each_with_index do |h, i|

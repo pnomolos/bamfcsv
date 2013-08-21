@@ -171,6 +171,10 @@ describe BAMFCSV do
         expect { BAMFCSV.parse('1,"" ,2') }.should raise_error(BAMFCSV::MalformedCSVError)
       end
 
+      it "doesn't raise BAMFCSV::MalformedCSVError when a quoted cell is not closed at its end and ignore_trailing_whitespace: true is passed" do
+        expect { BAMFCSV.parse('"" ', ignore_trailing_whitespace: true) }.should_not raise_error(BAMFCSV::MalformedCSVError)
+      end
+
       it "raises BAMFCSV::MalformedCSVError when unescaped quotes appear in a quoted cell" do
         expect { BAMFCSV.parse('"a"b"c"') }.should raise_error(BAMFCSV::MalformedCSVError)
         expect { BAMFCSV.parse('"a"b"c",2') }.should raise_error(BAMFCSV::MalformedCSVError)

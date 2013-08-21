@@ -33,7 +33,7 @@ VALUE bamfcsv_parse_string(VALUE self, VALUE string, VALUE rstr_sep, VALUE ignor
   long bufsize = RSTRING_LEN(string);
   rb_encoding *enc = rb_enc_from_index(ENCODING_GET(string));
   char separator = *RSTRING_PTR(rstr_sep);
-  bool whitespace = true; // Allows us to ignore optional whitespacing
+  bool whitespace = ignore_trailing_whitespace; // Allows us to ignore optional whitespacing
 
   unsigned long num_rows = 1, cell_count = 1;
   int quote_count = 0, quotes_matched = 1;
@@ -101,7 +101,7 @@ VALUE bamfcsv_parse_string(VALUE self, VALUE string, VALUE rstr_sep, VALUE ignor
         ++num_rows;
         cell_count = 0;
 
-      } else if (quote_count && *cur != '\r' && *cur != '"' && *cur != ' ')
+      } else if (quote_count && *cur != '\r' && *cur != '"' && (*cur != ' ' || !ignore_trailing_whitespace))
         rb_raise(BAMFCSV_MalformedCSVError_class, "Illegal quoting on line %lu, cell %lu", num_rows, cell_count);
       else if (*cur != '"' && ignore_trailing_whitespace)
         whitespace = whitespace && (*cur == ' ' || *cur == '\r');

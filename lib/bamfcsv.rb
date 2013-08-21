@@ -15,9 +15,10 @@ module BAMFCSV
     # that, and throw away the copy.
     copy = "" + csv_str
     separator = opts.fetch(:separator, ',')
+    ignore_trailing_whitespace = opts.fetch(:ignore_trailing_whitespace, false)
     raise InvalidSeparator, "Separator must be exactly one character long" if separator.size != 1
     raise InvalidSeparator, "Separator cannot be '\"'" if separator == '"'
-    matrix = __parse_string(copy, separator)
+    matrix = __parse_string(copy, separator, ignore_trailing_whitespace)
     if opts[:headers]
       Table.new(matrix, opts)
     else

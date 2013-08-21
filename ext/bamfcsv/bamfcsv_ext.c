@@ -28,7 +28,7 @@ bool quotes_end_line(char* cur) {
   return *(cur-1) == '"' || (*(cur-1) == '\r' && *(cur-2) == '"');
 }
 
-VALUE bamfcsv_parse_string(VALUE self, VALUE string, VALUE rstr_sep) {
+VALUE bamfcsv_parse_string(VALUE self, VALUE string, VALUE rstr_sep, VALUE ignore_trailing_whitespace) {
   char *buf = RSTRING_PTR(string);
   long bufsize = RSTRING_LEN(string);
   rb_encoding *enc = rb_enc_from_index(ENCODING_GET(string));
@@ -59,16 +59,13 @@ VALUE bamfcsv_parse_string(VALUE self, VALUE string, VALUE rstr_sep) {
       else {
         ++quote_count;
         if (!(quote_count & 1))
-          whitespace = true;
-        continue;
+          whitespace = ignore_trailing_whitespace;
       }
     }
 
     quotes_matched = !(quote_count & 1); /* count is even */
 
     if (quotes_matched) { 
-      
-      whitespace = whitespace & (*cur == ' ');
       
       if (*cur == separator) {
         
@@ -87,8 +84,8 @@ VALUE bamfcsv_parse_string(VALUE self, VALUE string, VALUE rstr_sep) {
 
       } else if (*cur == '\n') {
         
-        if (quote_count && !quotes_end_line(cur))
-            rb_raise(BAMFCSV_MalformedCSVError_class, "Unclosed quoted field on line %lu, cell %lu: EOL", num_rows, cell_count);
+        if (quote_count && (!quotes_end_line(cur) && !whitespace))
+            rb_raise(BAMFCSV_MalformedCSVError_class, "Unclosed quoted field on line %lu, cell %lu: EOL (%c)", num_rows, cell_count, (whitespace ? 'w' : 'n'));
 
         VALUE cell_str = bamfcsv_finalize_cell(cell_start, cur-1, quote_count, enc);
         if (quote_count)
@@ -104,8 +101,10 @@ VALUE bamfcsv_parse_string(VALUE self, VALUE string, VALUE rstr_sep) {
         ++num_rows;
         cell_count = 0;
 
-      } else if (quote_count && *cur != '\r' && *cur != '"')
+      } else if (quote_count && *cur != '\r' && *cur != '"' && *cur != ' ')
         rb_raise(BAMFCSV_MalformedCSVError_class, "Illegal quoting on line %lu, cell %lu", num_rows, cell_count);
+      else if (*cur != '"' && ignore_trailing_whitespace)
+        whitespace = whitespace && (*cur == ' ' || *cur == '\r');
       
     }
 
@@ -113,8 +112,8 @@ VALUE bamfcsv_parse_string(VALUE self, VALUE string, VALUE rstr_sep) {
 
   if (!quotes_matched) /* Reached EOF without matching quotes */
     rb_raise(BAMFCSV_MalformedCSVError_class, "Illegal quoting on line %lu, cell %lu: File ends without closing '\"'", num_rows, cell_count);
-  else if (quote_count && !quotes_end_line(cur)) /* Quotes closed before end of final cell */
-    rb_raise(BAMFCSV_MalformedCSVError_class, "Unclosed quoted field on line %lu, cell %lu: EOF", num_rows, cell_count);
+  else if (quote_count && (!quotes_end_line(cur) && !whitespace)) /* Quotes closed before end of final cell */
+    rb_raise(BAMFCSV_MalformedCSVError_class, "Unclosed quoted field on line %lu, cell %lu: EOF (%c)", num_rows, cell_count, (whitespace ? 'w' : 'n'));
 
   VALUE cell_str = bamfcsv_finalize_cell(cell_start, cur-1, quote_count, enc);
   if (quote_count)
@@ -132,7 +131,7 @@ void Init_bamfcsv() {
 
   BAMFCSV_module = rb_define_module("BAMFCSV");
   VALUE bamfcsv_singleton_class = rb_singleton_class(BAMFCSV_module);
-  rb_define_private_method(bamfcsv_singleton_class, "__parse_string", bamfcsv_parse_string, 2);
+  rb_define_private_method(bamfcsv_singleton_class, "__parse_string", bamfcsv_parse_string, 3);
 
   BAMFCSV_MalformedCSVError_class = rb_define_class_under(BAMFCSV_module, "MalformedCSVError", rb_eRuntimeError);
 }

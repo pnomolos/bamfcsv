@@ -33,6 +33,7 @@ VALUE bamfcsv_parse_string(VALUE self, VALUE string, VALUE rstr_sep) {
   long bufsize = RSTRING_LEN(string);
   rb_encoding *enc = rb_enc_from_index(ENCODING_GET(string));
   char separator = *RSTRING_PTR(rstr_sep);
+  bool whitespace = true; // Allows us to ignore optional whitespacing
 
   unsigned long num_rows = 1, cell_count = 1;
   int quote_count = 0, quotes_matched = 1;
@@ -55,17 +56,23 @@ VALUE bamfcsv_parse_string(VALUE self, VALUE string, VALUE rstr_sep) {
     if (*cur == '"') {
       if (0 == quote_count && cell_start != cur) /* Quotes begin past opening of cell */
         rb_raise(BAMFCSV_MalformedCSVError_class, "Illegal quoting on line %lu, cell %lu: Quoted cell must open with '\"'", num_rows, cell_count);
-      else
+      else {
         ++quote_count;
+        if (!(quote_count & 1))
+          whitespace = true;
+        continue;
+      }
     }
 
     quotes_matched = !(quote_count & 1); /* count is even */
 
     if (quotes_matched) { 
-
+      
+      whitespace = whitespace & (*cur == ' ');
+      
       if (*cur == separator) {
         
-        if (quote_count && *(cur-1) != '"')
+        if (quote_count && *(cur-1) != '"' && !whitespace)
           rb_raise(BAMFCSV_MalformedCSVError_class, "Unclosed quoted field on line %lu, cell %lu.", num_rows, cell_count);
 
         VALUE cell_str = bamfcsv_finalize_cell(cell_start, cur-1, quote_count, enc);

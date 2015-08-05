@@ -4,7 +4,7 @@ module BAMFCSV
     def initialize(matrix, opts = {})
       @opts = opts
       @headers = matrix.shift
-      
+
       if @opts.has_key? :header_converters
         if !@opts[:header_converters].is_a? Array
           @opts[:header_converters] = [@opts[:header_converters]]
@@ -15,7 +15,7 @@ module BAMFCSV
           end
         end
       end
-      
+
       @matrix = matrix
       @header_map = {}
       @headers.each_with_index do |h, i|
@@ -66,6 +66,12 @@ module BAMFCSV
 
       def [](key)
         @fields[@header_map[key]]
+      end
+
+      def to_hash
+        pairs = []
+        headers.each{ |h| pairs << [h, self[h]] }
+        Hash[pairs]
       end
 
       def inspect

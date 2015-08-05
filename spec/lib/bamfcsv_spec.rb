@@ -283,6 +283,21 @@ CSV
         BAMFCSV.parse(csv, :headers => true).first.inspect.should == inspected
       end
     end
+
+    describe "Table::Row#to_hash" do
+      it "is a Hash" do
+        csv = <<CSV
+foo,bar
+1,2
+baz,quux
+CSV
+
+        hash = {"foo" => "1", "bar" => "2"}
+
+        BAMFCSV.parse(csv, :headers => true).first.to_hash.should == hash
+      end
+    end
+
     describe "Alternate separators" do
       it "raises BAMFCSV::InvalidSeparator if :separator is not exactly one character long" do
         expect { BAMFCSV.parse("1,2", :separator => '') }.should raise_error(BAMFCSV::InvalidSeparator)
